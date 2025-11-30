@@ -33,15 +33,17 @@ from utils.warning_pop_up_save import confirm_save
 from windows.main.menu_bar import MenuBar
 from windows.others.new_ver_avalaible import NewVerAvailable
 from windows.window import Window
+from windows.sidebar import Sidebar  # NEW import
 
 
-def deepcopy_dict_missing_entries(dst:dict,src:dict):
-# recursively copy entries that are in src but not in dst
-    for k,v in src.items():
+def deepcopy_dict_missing_entries(dst: dict, src: dict):
+    # recursively copy entries that are in src but not in dst
+    for k, v in src.items():
         if k not in dst:
             dst[k] = copy.deepcopy(v)
-        elif isinstance(v,dict):
-            deepcopy_dict_missing_entries(dst[k],v)
+        elif isinstance(v, dict):
+            deepcopy_dict_missing_entries(dst[k], v)
+
 
 class MainApp(Window):
     """Main windows of the application"""
@@ -75,13 +77,19 @@ class MainApp(Window):
         if self.settings.settings_dict["Recordings"]["Show_Events_On_Status_Bar"]:
             self.status_text.pack(side=BOTTOM, fill=X)
 
+        # Layout: sidebar on the left, main content in center_frame
+        # Sidebar
+        self.sidebar = Sidebar(self, controller=self)
+        self.sidebar.pack(side=LEFT, fill="y")
+
         # Main Buttons (Start record, stop record, start playback, stop playback)
 
         # Play Button
         self.playImg = PhotoImage(file=resource_path(path.join("assets", "button", "play.png")))
 
+        # main content frame (center)
         self.center_frame = Frame(self)
-        self.center_frame.pack(expand=True, fill=BOTH)
+        self.center_frame.pack(side=RIGHT, expand=True, fill=BOTH)
 
         # Import record if opened with .pmr extension
         if len(argv) > 1:
@@ -124,6 +132,56 @@ class MainApp(Window):
                 if time() > self.settings.settings_dict["Others"]["Remind_new_ver_at"]:
                     NewVerAvailable(self, self.version.new_version)
         self.mainloop()
+
+    # Sidebar callback wrappers
+    # These methods are called by Sidebar(controller=self)
+
+    def start_record(self):
+        """Start recording (sidebar action)."""
+        if not self.prevent_record:
+            self.macro.start_record()
+
+    def stop_record(self):
+        """Stop recording or playback (sidebar action)."""
+        self.macro.stop_record() if hasattr(self.macro, "stop_record") else None
+
+    def start_playback(self):
+        """Start playback (sidebar action)."""
+        self.macro.start_playback()
+
+    def open_macro(self):
+        """Open macro from file (sidebar action)."""
+        RecordFileManagement(self, self.menu).load_macro()
+
+    def save_macro(self):
+        """Save macro to file (sidebar action)."""
+        RecordFileManagement(self, self.menu).save_macro()
+
+    def open_repetitions(self):
+        """Open repetitions/loop options (sidebar action)."""
+        # Replace with real window for repetitions if it exists
+        if hasattr(self.macro, "open_repetitions_window"):
+            self.macro.open_repetitions_window()
+
+    def open_speed_interval(self):
+        """Open speed/interval options (sidebar action)."""
+        if hasattr(self.macro, "open_speed_interval_window"):
+            self.macro.open_speed_interval_window()
+
+    def open_schedule(self):
+        """Open scheduling options (sidebar action)."""
+        if hasattr(self.macro, "open_schedule_window"):
+            self.macro.open_schedule_window()
+
+    def open_after_playback(self):
+        """Open after-playback options (sidebar action)."""
+        if hasattr(self.macro, "open_after_playback_window"):
+            self.macro.open_after_playback_window()
+
+    def open_settings(self):
+        """Open settings/hotkeys (sidebar action)."""
+        if hasattr(self.settings, "open_settings_window"):
+            self.settings.open_settings_window()
 
     def load_language(self):
         self.lang = self.settings.settings_dict["Language"]
